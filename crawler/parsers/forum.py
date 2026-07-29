@@ -21,22 +21,26 @@ class ForumParser:
                     href = base_url.rstrip("/") + "/" + href.lstrip("/")
                 links.add(href)
 
-        # Discuz pattern
-        for a in soup.select("a[href*='thread-'], a[href*='viewthread']"):
-            href = a.get("href", "")
-            if href and not href.startswith("http"):
-                href = base_url.rstrip("/") + "/" + href.lstrip("/")
-            if href:
-                links.add(href)
+        # Discuz pattern - thread links with tid=
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            # Match actual thread URLs: thread-{tid}-1-1.html or viewthread.php?tid={tid}
+            if re.search(r"thread-\d+-1-1\.html|viewthread\.php\?.*tid=\d+|read\.php\?.*tid=\d+", href):
+                if not href.startswith("http"):
+                    href = base_url.rstrip("/") + "/" + href.lstrip("/")
+                # Skip redirect links
+                if "redirect" not in href:
+                    links.add(href)
 
         # Generic fallback - find all thread-like links
         if not links:
             for a in soup.find_all("a", href=True):
                 href = a["href"]
-                if any(p in href for p in ["/threads/", "/topic/", "thread-", "tid="]):
+                if any(p in href for p in ["thread-", "tid="]):
                     if not href.startswith("http"):
                         href = base_url.rstrip("/") + "/" + href.lstrip("/")
-                    links.add(href)
+                    if "redirect" not in href:
+                        links.add(href)
 
         return list(links)
 
