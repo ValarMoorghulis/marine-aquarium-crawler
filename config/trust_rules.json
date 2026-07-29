@@ -1,0 +1,94 @@
+{
+  "version": "1.0",
+  "scoring": {
+    "dimensions": {
+      "source_credibility": {"max_score": 40, "weight": 1.0},
+      "content_scientific": {"max_score": 40, "weight": 1.0},
+      "community_validation": {"max_score": 20, "weight": 1.0}
+    },
+    "trust_levels": [
+      {"level": "authoritative", "min_score": 90, "label": "🏆 权威", "action": "archive_with_reference"},
+      {"level": "reliable", "min_score": 75, "label": "✅ 可信", "action": "archive"},
+      {"level": "reference", "min_score": 60, "label": "📝 参考", "action": "archive"},
+      {"level": "unverified", "min_score": 40, "label": "⚠️ 待验", "action": "archive_with_warning"},
+      {"level": "ignored", "min_score": 0, "label": "❌ 忽略", "action": "discard"}
+    ]
+  },
+  "source_scores": {
+    "academic_paper": 40,
+    "government_report": 35,
+    "research_institution": 35,
+    "senior_forum_user": 25,
+    "regular_forum_user": 15,
+    "blog_media": 10,
+    "anonymous_post": 5
+  },
+  "content_scoring": {
+    "positive": {
+      "has_data": {"score": 15, "description": "包含具体参数（温度、盐度、pH等）"},
+      "has_references": {"score": 10, "description": "引用学术论文或权威来源"},
+      "matches_biology": {"score": 10, "description": "符合已知生物学原理"},
+      "reproducible": {"score": 5, "description": "提供具体可操作的步骤"}
+    },
+    "negative": {
+      "violates_science": {"score": -20, "description": "违反已知科学事实"},
+      "obvious_promotion": {"score": -10, "description": "明显商业推广/软文"},
+      "unsupported_claim": {"score": -5, "description": "无来源的经验断言"}
+    }
+  },
+  "community_signals": {
+    "high_likes": {"threshold": 50, "bonus": 10},
+    "active_discussion": {"threshold": 10, "bonus": 5},
+    "cross_referenced": {"threshold": 3, "bonus": 5},
+    "moderator_pinned": {"bonus": 10}
+  },
+  "biology_rules": {
+    "water_params": {
+      "salinity": {
+        "sg_normal": [1.020, 1.028],
+        "sg_safe": [1.023, 1.026],
+        "note": "比重低于1.020或高于1.028需要特别说明理由"
+      },
+      "temperature": {
+        "tropical_safe": [24, 28],
+        "critical_low": 20,
+        "critical_high": 32,
+        "note": "超过30°C或低于22°C需要特别说明"
+      },
+      "ph": {
+        "normal": [8.0, 8.4],
+        "note": "海水pH低于7.8或高于8.5均异常"
+      },
+      "ammonia": {"max_ppm": 0.02},
+      "nitrite": {"max_ppm": 0.1},
+      "nitrate": {
+        "coral_tank_max_ppm": 5,
+        "fish_only_max_ppm": 40
+      },
+      "calcium": {"coral_range_ppm": [380, 450]},
+      "alkalinity": {"coral_range_dkh": [7.0, 11.0]},
+      "magnesium": {"range_ppm": [1250, 1350]}
+    },
+    "red_flags": [
+      "加盐可以治所有病",
+      "不需要蛋白分离器",
+      "海水缸不需要光照",
+      "珊瑚不需要水流",
+      "硝化细菌不重要",
+      "水温35度没问题",
+      "自来水可以直接用",
+      "海水鱼和淡水鱼一样养",
+      "盐度可以随意变化",
+      "不需要换水"
+    ],
+    "principles": [
+      "nitrogen_cycle",
+      "osmosis",
+      "symbiosis_zooxanthellae",
+      "lighting_par",
+      "water_flow",
+      "protein_skimming",
+      "biological_filtration"
+    ]
+  }
+}
