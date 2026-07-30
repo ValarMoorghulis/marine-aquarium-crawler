@@ -12,6 +12,7 @@ from fake_useragent import UserAgent
 from crawler.parsers.forum import ForumParser
 from crawler.parsers.blog import BlogParser
 from crawler.parsers.academic import AcademicParser
+from crawler.content_classifier import get_classifier
 
 logger = logging.getLogger(__name__)
 
@@ -78,14 +79,31 @@ class CrawlerEngine:
                 articles.extend(self._fetch_section(url, source, parser))
 
             saved = 0
+            skipped = 0
+            classifier = get_classifier()
             for article in articles:
+                # 内容分类过滤：丢弃闲聊/水帖
+                keep, classify_result = classifier.should_keep(article)
+                if not keep:
+                    skipped += 1
+                    logger.debug(
+                        f"  Skipped [{classify_result['content_type']}]: "
+                        f"{article.get('title', '')[:60]}"
+                    )
+                    continue
                 content_hash = hashlib.sha256(article["content"].encode()).hexdigest()[:16]
                 if not self.store.article_exists(content_hash):
+                    # 将分类结果写入 article 元数据
+                    article["content_type"] = classify_result["content_type"]
+                    article["classification_confidence"] = classify_result["confidence"]
                     self.store.save_article(article, content_hash)
                     saved += 1
 
             self.store.update_crawl_time(source["id"])
-            logger.info(f"  {source['id']}: found {len(articles)}, saved {saved} new")
+            logger.info(
+                f"  {source['id']}: found {len(articles)}, "
+                f"kept {saved}, skipped {skipped} (noise/discussion)"
+            )
         except Exception as e:
             logger.error(f"  Failed to crawl {source['id']}: {e}")
 

@@ -1,4 +1,10 @@
-"""论坛解析器 - 支持 XenForo / Discuz / Flarum"""
+"""论坛解析器 - 支持 XenForo / Discuz / Flarum
+
+增强功能：
+- 优先抓取置顶帖/精华帖
+- 标题关键词预过滤（优先知识类帖子）
+- 识别帖子类型（教程/讨论/求助/晒帖）
+"""
 import re
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -7,42 +13,101 @@ from readability import Document
 import trafilatura
 
 
+# 知识类标题关键词（优先抓取）
+KNOWLEDGE_TITLE_PATTERNS = [
+    r"(?:tutorial|guide|how[\s-]to|complete\s+guide|beginner|walkthrough)",
+    r"(?:教程|指南|手把手|入门|进阶|保姆级|详解|全面)",
+    r"(?:study|research|experiment|analysis|data|results|findings)",
+    r"(?:研究|实验|数据|分析|测试|验证|实测)",
+    r"(?:species\s+profile|care\s+sheet|husbandry|requirement)",
+    r"(?:物种|养护|参数|百科|评测|对比|推荐)",
+    r"(?:step[\s-]by[\s-]step|detailed|comprehensive|in[\s-]depth)",
+    r"(?:设备|器材|蛋白分离器|造浪|灯光|LED|PAR)",
+]
+
+# 低价值标题关键词（降优先级或跳过）
+LOW_VALUE_TITLE_PATTERNS = [
+    r"(?:help|emergency|urgent|sick|dying|died|dead|problem|issue|trouble)",
+    r"(?:求助|急|病|死|挂了|出问题|怎么办|怎么回事)",
+    r"(?:show\s+off|look\s+at|check\s+out|my\s+tank|my\s+reef|progress)",
+    r"(?:晒缸|上图|我的缸|我的 reef|进展|Day\s+\d+|Week\s+\d+)",
+    r"(?:new\s+to|first\s+reef|just\s+started|just\s+bought|newbie)",
+    r"(?:新手|刚入|刚开|第一次|小白)",
+    r"(?:recommend|suggestion|what\s+should|best\s+for|which\s+one)",
+    r"(?:推荐|建议|选哪个|用什么|哪个好)",
+]
+
+
 class ForumParser:
     def extract_article_links(self, html, base_url):
-        """从论坛列表页提取文章链接"""
+        """从论坛列表页提取文章链接，优先置顶帖和知识类帖子"""
         soup = BeautifulSoup(html, "lxml")
-        links = set()
+        pinned_links = []    # 置顶/精华帖
+        knowledge_links = []  # 标题含知识关键词
+        normal_links = []     # 普通帖子
 
         # XenForo pattern
-        for a in soup.select("a[data-tp-primary], a.PreviewTooltip, .structItem-title a"):
+        for item in soup.select(".structItem, .structItem--thread"):
+            a = item.select_one(".structItem-title a[href]")
+            if not a:
+                continue
             href = a.get("href", "")
-            if href and ("/threads/" in href or "/topic/" in href):
-                if not href.startswith("http"):
-                    href = base_url.rstrip("/") + "/" + href.lstrip("/")
-                links.add(href)
+            if not href or ("/threads/" not in href and "/topic/" not in href):
+                continue
+            if not href.startswith("http"):
+                href = base_url.rstrip("/") + "/" + href.lstrip("/")
 
-        # Discuz pattern - thread links with tid=
-        for a in soup.find_all("a", href=True):
+            title_text = a.get_text(strip=True).lower()
+            is_pinned = bool(item.select_one(".structItem-status--sticky, .structItem-status--iconic"))
+            is_prefix = bool(item.select_one(".label--accent, .label--success, .label--primary"))
+
+            # 根据标题和状态分类
+            if is_pinned or is_prefix:
+                pinned_links.append(href)
+            elif any(re.search(p, title_text, re.IGNORECASE) for p in KNOWLEDGE_TITLE_PATTERNS):
+                knowledge_links.append(href)
+            elif any(re.search(p, title_text, re.IGNORECASE) for p in LOW_VALUE_TITLE_PATTERNS):
+                continue  # 跳过低价值帖子
+            else:
+                normal_links.append(href)
+
+        # Discuz pattern
+        for item in soup.select("tbody[id^='normalthread_'], li.pbw"):
+            a = item.select_one("a[href*='thread-'], a[href*='tid=']")
+            if not a:
+                continue
             href = a["href"]
-            # Match actual thread URLs: thread-{tid}-1-1.html or viewthread.php?tid={tid}
-            if re.search(r"thread-\d+-1-1\.html|viewthread\.php\?.*tid=\d+|read\.php\?.*tid=\d+", href):
-                if not href.startswith("http"):
-                    href = base_url.rstrip("/") + "/" + href.lstrip("/")
-                # Skip redirect links
-                if "redirect" not in href:
-                    links.add(href)
+            if not href.startswith("http"):
+                href = base_url.rstrip("/") + "/" + href.lstrip("/")
+            if "redirect" in href:
+                continue
 
-        # Generic fallback - find all thread-like links
-        if not links:
+            title_text = a.get_text(strip=True).lower()
+            # Discuz 置顶帖通常在 table 有特殊 class
+            is_sticky = bool(item.select_one(".stick, .colorboard, .xi2"))
+
+            if is_sticky:
+                pinned_links.append(href)
+            elif any(re.search(p, title_text, re.IGNORECASE) for p in KNOWLEDGE_TITLE_PATTERNS):
+                knowledge_links.append(href)
+            elif any(re.search(p, title_text, re.IGNORECASE) for p in LOW_VALUE_TITLE_PATTERNS):
+                continue
+            else:
+                normal_links.append(href)
+
+        # Generic fallback
+        if not pinned_links and not knowledge_links and not normal_links:
             for a in soup.find_all("a", href=True):
                 href = a["href"]
                 if any(p in href for p in ["thread-", "tid="]):
                     if not href.startswith("http"):
                         href = base_url.rstrip("/") + "/" + href.lstrip("/")
                     if "redirect" not in href:
-                        links.add(href)
+                        normal_links.append(href)
 
-        return list(links)
+        # 合并：置顶帖 + 知识帖 + 普通帖（限制数量）
+        result = pinned_links + knowledge_links + normal_links
+        return result[:50]  # 最多50个链接
 
     def parse_article(self, html, url, source):
         """解析单篇文章"""
@@ -81,6 +146,9 @@ class ForumParser:
         # 获取用户等级信息（用于信任度评估）
         user_role = self._extract_user_role(soup)
 
+        # 检测是否为置顶帖/精华帖
+        is_pinned = self._is_pinned_post(soup)
+
         return {
             "title": title,
             "author": author,
@@ -95,8 +163,25 @@ class ForumParser:
             "base_trust_score": source.get("base_trust_score", 10),
             "user_role": user_role,
             "stats": stats,
+            "is_pinned": is_pinned,
             "crawled_at": datetime.now().isoformat(),
         }
+
+    def _is_pinned_post(self, soup):
+        """检测是否为置顶帖/精华帖"""
+        selectors = [
+            ".structItem-status--sticky",
+            ".structItem-status--iconic",
+            ".label--accent",
+            ".label--success",
+            ".stick",
+            ".colorboard",
+            ".thread-status-sticky",
+        ]
+        for sel in selectors:
+            if soup.select_one(sel):
+                return True
+        return False
 
     def _extract_content(self, soup):
         """提取正文内容，保留格式"""

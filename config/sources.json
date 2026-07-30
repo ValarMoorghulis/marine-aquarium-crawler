@@ -17,7 +17,10 @@
           "/forums/saltwater-aquarium-fish.56/",
           "/forums/coral-discussion.602/",
           "/forums/reef-tank-setup-and-cycling.603/",
-          "/forums/water-chemistry.173/"
+          "/forums/water-chemistry.173/",
+          "/forums/beginner-articles.208/",
+          "/forums/equipment-pairings.74/",
+          "/forums/coral-propagation.441/"
         ],
         "max_pages_per_section": 5,
         "delay_seconds": 4,
@@ -39,7 +42,8 @@
         "sections": [
           "/forums/saltwater-reef-aquaria.11/",
           "/forums/saltwater-reef-getting-started.367/",
-          "/forums/saltwater-fish-only-fowlr.368/"
+          "/forums/saltwater-fish-only-fowlr.368/",
+          "/forums/saltwater-reef-chemistry.373/"
         ],
         "max_pages_per_section": 5,
         "delay_seconds": 4,
@@ -60,7 +64,8 @@
       "crawl_config": {
         "sections": [
           "/community/forums/saltwater-fish-disease-treatment-and-prevention.51/",
-          "/community/forums/coral-health.52/"
+          "/community/forums/coral-health.52/",
+          "/community/forums/medications-and-treatments.53/"
         ],
         "max_pages_per_section": 5,
         "delay_seconds": 4,
@@ -83,7 +88,9 @@
           "/bbs/forum.php?mod=forumdisplay&fid=22",
           "/bbs/forum.php?mod=forumdisplay&fid=16",
           "/bbs/forum.php?mod=forumdisplay&fid=17",
-          "/bbs/forum.php?mod=forumdisplay&fid=20"
+          "/bbs/forum.php?mod=forumdisplay&fid=20",
+          "/bbs/forum.php?mod=forumdisplay&fid=31",
+          "/bbs/forum.php?mod=forumdisplay&fid=32"
         ],
         "max_pages_per_section": 5,
         "delay_seconds": 5,
@@ -182,6 +189,60 @@
       "tags": ["coral", "reef-ecology"]
     },
     {
+      "id": "reefbuilders_edu",
+      "name": "Reef Builders Education",
+      "url": "https://reefbuilders.com",
+      "type": "blog",
+      "platform": "wordpress",
+      "language": "en",
+      "category": "media",
+      "priority": "high",
+      "base_trust_score": 22,
+      "crawl_config": {
+        "sections": ["/education/", "/reef-aquarium-basics/", "/coral-care/"],
+        "max_pages_per_section": 5,
+        "delay_seconds": 4,
+        "respect_robots": true
+      },
+      "tags": ["education", "basics", "coral-care"]
+    },
+    {
+      "id": "saltwateraquariumblog",
+      "name": "Saltwater Aquarium Blog",
+      "url": "https://www.saltwateraquariumblog.com",
+      "type": "blog",
+      "platform": "wordpress",
+      "language": "en",
+      "category": "media",
+      "priority": "high",
+      "base_trust_score": 22,
+      "crawl_config": {
+        "sections": ["/saltwater-aquarium-fish/", "/coral/", "/reef-tank/"],
+        "max_pages_per_section": 5,
+        "delay_seconds": 4,
+        "respect_robots": true
+      },
+      "tags": ["fish", "coral", "reef", "guide"]
+    },
+    {
+      "id": "reef2reef_articles",
+      "name": "Reef2Reef Articles",
+      "url": "https://www.reef2reef.com",
+      "type": "blog",
+      "platform": "custom",
+      "language": "en",
+      "category": "media",
+      "priority": "high",
+      "base_trust_score": 28,
+      "crawl_config": {
+        "sections": ["/articles/"],
+        "max_pages_per_section": 5,
+        "delay_seconds": 4,
+        "respect_robots": true
+      },
+      "tags": ["articles", "tutorials", "guides"]
+    },
+    {
       "id": "coral_research_hub",
       "name": "Coral Reef Research Hub",
       "url": "https://www.thecoralreefresearchhub.com",
@@ -189,7 +250,7 @@
       "platform": "custom",
       "language": "en",
       "category": "knowledge_base",
-      "priority": "medium",
+      "priority": "high",
       "base_trust_score": 30,
       "crawl_config": {
         "sections": ["/coral-matters-current-issue/"],
@@ -207,7 +268,7 @@
       "platform": "custom",
       "language": "en",
       "category": "media",
-      "priority": "medium",
+      "priority": "high",
       "base_trust_score": 25,
       "crawl_config": {
         "sections": ["/species-profiles/", "/husbandry/"],
