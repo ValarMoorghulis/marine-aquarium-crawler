@@ -66,8 +66,8 @@ class GitSyncer:
 > **来源**: [{article.get('source_name', '')}]({article.get('url', '')})
 > **作者**: {article.get('author', 'Unknown')}
 > **日期**: {article.get('date', 'N/A')}
-> **信任度**: {meta.get('trust_score', 0)}/100 ({meta.get('trust_level', 'unknown')})
-> **采集时间**: {meta.get('crawled_at', '')}
+> **信任度**: {meta['trust_score']}/100 ({meta['trust_level']})
+> **采集时间**: {article.get('crawled_at', '')}
 
 ---
 
@@ -75,7 +75,7 @@ class GitSyncer:
 
 ---
 
-*采集自 {article.get('source_name', '')} | 信任评估: {meta.get('trust_level', 'unknown')}*
+*采集自 {article.get('source_name', '')} | 信任评估: {meta['trust_level']}*
 """
 
         filepath.write_text(md_content, encoding="utf-8")

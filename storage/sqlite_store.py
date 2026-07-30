@@ -107,10 +107,10 @@ class SQLiteStore:
         return cur.fetchall()
 
     def get_archivable_articles(self):
-        """获取可归档的高信任度文章"""
+        """获取可归档的文章（trust_score >= 20）"""
         cur = self.conn.execute(
             """SELECT content_hash, data_json, trust_score, trust_level
-            FROM articles WHERE archived=0 AND trust_score >= 40
+            FROM articles WHERE archived=0 AND trust_score >= 20
             ORDER BY trust_score DESC"""
         )
         return cur.fetchall()
