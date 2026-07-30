@@ -158,14 +158,20 @@ def crawl_cmf_via_curl(max_threads_per_section=5):
             print(f"   Found {len(thread_urls)} threads")
 
             for turl in thread_urls[:max_threads_per_section]:
+                # 去重：跳过已爬取的 URL
+                if store.url_visited(turl):
+                    continue
+
                 try:
                     time.sleep(4)
                     thtml = curl_get(turl)
                     if not thtml:
+                        store.mark_visited(turl, "cmfish", status="fetch_failed")
                         continue
 
                     article = extract_thread_content(thtml, turl)
                     if not article:
+                        store.mark_visited(turl, "cmfish", status="parse_failed")
                         continue
 
                     trust = evaluator.evaluate(article)
@@ -179,7 +185,10 @@ def crawl_cmf_via_curl(max_threads_per_section=5):
                         level = trust["level"]["label"]
                         print(f"   ✅ [{score:3d}] {level} | {article['title'][:45]}")
 
+                    store.mark_visited(turl, "cmfish", article.get("title", ""), h)
+
                 except Exception as e:
+                    store.mark_visited(turl, "cmfish", status="error")
                     print(f"   ⚠️  {turl[:50]}... - {e}")
 
         except Exception as e:

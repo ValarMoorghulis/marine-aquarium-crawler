@@ -52,7 +52,13 @@ def main():
             print(f"   Found {len(articles)} articles")
 
             saved = 0
+            skipped = 0
             for art in articles:
+                # 去重：跳过已爬取的 URL
+                if store.url_visited(art["url"]):
+                    skipped += 1
+                    continue
+
                 trust = evaluator.evaluate(art)
                 h = hashlib.sha256(art["content"].encode()).hexdigest()[:16]
                 if not store.article_exists(h):
@@ -64,8 +70,13 @@ def main():
                     title = art["title"][:55]
                     print(f"   ✅ [{score:3d}] {level} | {title}")
 
+                store.mark_visited(art["url"], source_id, art.get("title", ""), h)
+
             total += saved
-            print(f"   → Saved {saved} new")
+            if skipped > 0:
+                print(f"   → Saved {saved} new, skipped {skipped} already visited")
+            else:
+                print(f"   → Saved {saved} new")
 
         except Exception as e:
             print(f"   ❌ Error: {e}")

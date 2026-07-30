@@ -39,8 +39,40 @@ class SQLiteStore:
                 last_crawl TEXT,
                 total_articles INTEGER DEFAULT 0
             );
+
+            CREATE TABLE IF NOT EXISTS crawl_history (
+                url TEXT PRIMARY KEY,
+                source_id TEXT,
+                title TEXT,
+                content_hash TEXT,
+                status TEXT DEFAULT 'ok',
+                crawled_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_history_source ON crawl_history(source_id);
+            CREATE INDEX IF NOT EXISTS idx_history_time ON crawl_history(crawled_at);
         """)
         self.conn.commit()
+
+    def url_visited(self, url):
+        """检查 URL 是否已爬取过"""
+        cur = self.conn.execute("SELECT 1 FROM crawl_history WHERE url=?", (url,))
+        return cur.fetchone() is not None
+
+    def mark_visited(self, url, source_id="", title="", content_hash="", status="ok"):
+        """标记 URL 为已爬取"""
+        self.conn.execute(
+            "INSERT OR REPLACE INTO crawl_history (url, source_id, title, content_hash, status, crawled_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (url, source_id, title, content_hash, status, datetime.now().isoformat())
+        )
+        self.conn.commit()
+
+    def get_visited_count(self, source_id=None):
+        """获取已爬取的 URL 数量"""
+        if source_id:
+            cur = self.conn.execute("SELECT COUNT(*) as c FROM crawl_history WHERE source_id=?", (source_id,))
+        else:
+            cur = self.conn.execute("SELECT COUNT(*) as c FROM crawl_history")
+        return cur.fetchone()["c"]
 
     def article_exists(self, content_hash):
         cur = self.conn.execute("SELECT 1 FROM articles WHERE content_hash=?", (content_hash,))
@@ -109,4 +141,20 @@ class SQLiteStore:
         print("=" * 50)
         for row in cur:
             print(f"  {row['source_id']:20s} | {row['trust_level']:15s} | {row['cnt']}")
+        
+        # 爬取历史统计
+        cur2 = self.conn.execute("""
+            SELECT source_id, COUNT(*) as cnt, 
+                   MIN(crawled_at) as first, MAX(crawled_at) as last
+            FROM crawl_history GROUP BY source_id ORDER BY source_id
+        """)
+        rows = cur2.fetchall()
+        if rows:
+            print("\n🔗 Crawl History (URLs visited)")
+            print("-" * 50)
+            total_visited = 0
+            for row in rows:
+                print(f"  {row['source_id']:20s} | {row['cnt']:5d} URLs | last: {row['last'][:10]}")
+                total_visited += row['cnt']
+            print(f"  {'TOTAL':20s} | {total_visited:5d} URLs")
         print("=" * 50)
